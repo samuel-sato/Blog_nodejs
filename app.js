@@ -10,6 +10,10 @@ const session = require('express-session')
 const flash = require('connect-flash')
 require("./models/postagens")
 const Postagem = mongoose.model("postagens")
+const usuarios = require("./routes/usuario")
+const passport = require("passport")
+require("./config/auth")(passport)
+const db = require("./config/db")
 
 //Configurações
     //Sessão
@@ -18,12 +22,18 @@ const Postagem = mongoose.model("postagens")
         resave: true,
         saveUninitialized: true
     }))
+
+    app.use(passport.initialize())
+    app.use(passport.session())
+
     app.use(flash())
 
     //Middleware
     app.use((req, res, next)=>{
         res.locals.success_msg = req.flash("success_msg")
         res.locals.error_msg = req.flash("error_msg")
+        res.locals.error = req.flash("error")
+        res.locals.user = req.user || null;
         next()
     })
 
@@ -41,7 +51,7 @@ const Postagem = mongoose.model("postagens")
 
     //Mongoose
     mongoose.Promise = global.Promise;
-    mongoose.connect('mongodb://localhost/blogapp').then(()=>{
+    mongoose.connect(db.mongoURI).then(()=>{
         console.log("Conectado ao mongo")
     }).catch((err)=>{
         console.log("Erro ao se conectar: "+err)
@@ -82,9 +92,11 @@ const Postagem = mongoose.model("postagens")
     })
 
     app.use('/admin', admin)
+    app.use('/usuarios', usuarios)
 //Outros
 
-const PORT = 8083
+const PORT = process.env.PORT || 8083
 app.listen(PORT, () => {
     console.log("Servidor Rodando! ")
 })
+
